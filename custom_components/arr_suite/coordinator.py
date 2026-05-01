@@ -59,31 +59,53 @@ class ArrCoordinator(DataUpdateCoordinator):
 
     async def _fetch_all(self, session: aiohttp.ClientSession) -> dict:
         base = self._api_base
-
-        status, queue, wanted, cutoff, health = await asyncio.gather(
+        status, health = await asyncio.gather(
             self._get(session, f"{base}/system/status"),
-            self._get(session, f"{base}/queue"),
-            self._get(session, f"{base}/wanted/missing"),
-            self._get(session, f"{base}/wanted/cutoff"),
             self._get(session, f"{base}/health"),
         )
-        calendar = await self._fetch_calendar(session)
 
         health_issues = [
             {"type": h["type"], "message": h["message"]}
             for h in (health or [])
             if h.get("type") in ("error", "warning")
         ]
-
-        return {
+        base_data = {
             "status": status.get("appName", "unknown"),
             "version": status.get("version", ""),
+            "health_ok": len(health_issues) == 0,
+            "health_issues": health_issues,
+        }
+
+        if self.arr_type == "prowlarr":
+            return {**base_data, **await self._fetch_prowlarr(session)}
+
+        return {**base_data, **await self._fetch_media_arr(session)}
+
+    async def _fetch_media_arr(self, session: aiohttp.ClientSession) -> dict:
+        base = self._api_base
+        queue, wanted, cutoff = await asyncio.gather(
+            self._get(session, f"{base}/queue"),
+            self._get(session, f"{base}/wanted/missing"),
+            self._get(session, f"{base}/wanted/cutoff"),
+        )
+        calendar = await self._fetch_calendar(session)
+        return {
             "queue_count": queue.get("totalRecords", 0) if isinstance(queue, dict) else 0,
             "wanted_count": wanted.get("totalRecords", 0) if isinstance(wanted, dict) else 0,
             "missing_count": cutoff.get("totalRecords", 0) if isinstance(cutoff, dict) else 0,
-            "health_ok": len(health_issues) == 0,
-            "health_issues": health_issues,
             "calendar": calendar,
+        }
+
+    async def _fetch_prowlarr(self, session: aiohttp.ClientSession) -> dict:
+        base = self._api_base
+        indexers, history = await asyncio.gather(
+            self._get(session, f"{base}/indexer"),
+            self._get(session, f"{base}/history"),
+        )
+        return {
+            "indexer_count": len(indexers) if isinstance(indexers, list) else 0,
+            "history_total": history.get("totalRecords", 0) if isinstance(history, dict) else 0,
+            "calendar": [],
         }
 
     async def _fetch_calendar(self, session: aiohttp.ClientSession) -> list:

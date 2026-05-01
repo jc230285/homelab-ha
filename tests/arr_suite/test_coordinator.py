@@ -84,3 +84,29 @@ async def test_coordinator_health_issues_parsed(hass):
     assert data["health_ok"] is False
     assert len(data["health_issues"]) == 2
     assert data["health_issues"][0]["message"] == "Root folder /shows missing"
+
+
+@pytest.mark.asyncio
+async def test_prowlarr_coordinator_fetches_indexers_and_history(hass):
+    coordinator = ArrCoordinator(
+        hass=hass,
+        name="Prowlarr",
+        host="192.168.68.2",
+        port=9696,
+        api_key="prowlarrkey",
+        arr_type="prowlarr",
+    )
+
+    with aioresponses() as m:
+        base = "http://192.168.68.2:9696/api/v1"
+        m.get(f"{base}/system/status", payload={"appName": "Prowlarr", "version": "1.0.0"})
+        m.get(f"{base}/indexer", payload=[{"id": 1}, {"id": 2}, {"id": 3}])
+        m.get(f"{base}/history", payload={"totalRecords": 50, "records": []})
+        m.get(f"{base}/health", payload=[])
+
+        data = await coordinator._async_update_data()
+
+    assert data["status"] == "Prowlarr"
+    assert data["indexer_count"] == 3
+    assert data["history_total"] == 50
+    assert data["health_ok"] is True
