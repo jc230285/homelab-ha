@@ -1,9 +1,5 @@
 {
   "name": "Homelab HA",
   "content_in_root": false,
-  "render_readme": true,
-  "plugins": [
-    "custom_cards/arr-media-card",
-    "custom_cards/homelab-infra-card"
-  ]
+  "render_readme": true
 }
