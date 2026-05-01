@@ -17,6 +17,7 @@ STEP_SCHEMA = vol.Schema({
     vol.Required("node_exporter_port", default=DEFAULT_NODE_EXPORTER_PORT_LINUX): int,
     vol.Optional("coolify_url", default=""): str,
     vol.Optional("coolify_api_key", default=""): str,
+    vol.Optional("ignore_connection_error", default=False): bool,
 })
 
 
@@ -26,8 +27,10 @@ class InfraConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
-            if await self._test_node_exporter(user_input):
-                return self.async_create_entry(title=user_input["name"], data=user_input)
+            reachable = await self._test_node_exporter(user_input)
+            if reachable or user_input.get("ignore_connection_error"):
+                data = {k: v for k, v in user_input.items() if k != "ignore_connection_error"}
+                return self.async_create_entry(title=data["name"], data=data)
             errors["base"] = "cannot_connect"
 
         return self.async_show_form(step_id="user", data_schema=STEP_SCHEMA, errors=errors)
