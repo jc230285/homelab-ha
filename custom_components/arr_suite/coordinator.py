@@ -1,8 +1,10 @@
 """DataUpdateCoordinator for arr_suite."""
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -11,7 +13,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     DOMAIN,
     DEFAULT_SCAN_INTERVAL,
-    CALENDAR_SCAN_INTERVAL,
     REQUEST_TIMEOUT,
     API_PATHS,
 )
@@ -59,11 +60,13 @@ class ArrCoordinator(DataUpdateCoordinator):
     async def _fetch_all(self, session: aiohttp.ClientSession) -> dict:
         base = self._api_base
 
-        status = await self._get(session, f"{base}/system/status")
-        queue = await self._get(session, f"{base}/queue")
-        wanted = await self._get(session, f"{base}/wanted/missing")
-        cutoff = await self._get(session, f"{base}/wanted/cutoff")
-        health = await self._get(session, f"{base}/health")
+        status, queue, wanted, cutoff, health = await asyncio.gather(
+            self._get(session, f"{base}/system/status"),
+            self._get(session, f"{base}/queue"),
+            self._get(session, f"{base}/wanted/missing"),
+            self._get(session, f"{base}/wanted/cutoff"),
+            self._get(session, f"{base}/health"),
+        )
         calendar = await self._fetch_calendar(session)
 
         health_issues = [
@@ -100,7 +103,7 @@ class ArrCoordinator(DataUpdateCoordinator):
         session: aiohttp.ClientSession,
         path: str,
         params: dict | None = None,
-    ) -> dict | list:
+    ) -> Any:
         url = f"{self._base_url}{path}"
         async with session.get(url, params=params) as resp:
             resp.raise_for_status()

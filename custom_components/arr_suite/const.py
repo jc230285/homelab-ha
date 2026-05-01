@@ -3,7 +3,6 @@ DOMAIN = "arr_suite"
 ARR_TYPES = ["sonarr", "radarr", "lidarr", "prowlarr"]
 
 DEFAULT_SCAN_INTERVAL = 60       # seconds
-CALENDAR_SCAN_INTERVAL = 300     # seconds
 REQUEST_TIMEOUT = 10             # seconds
 
 CONF_ARR_TYPE = "arr_type"
