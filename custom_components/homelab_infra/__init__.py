@@ -1,1 +1,34 @@
 """Homelab Infrastructure integration."""
+from __future__ import annotations
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant
+
+from .const import DOMAIN
+from .coordinator import InfraCoordinator
+
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    coordinator = InfraCoordinator(
+        hass=hass,
+        name=entry.data["name"],
+        host=entry.data["host"],
+        node_exporter_port=entry.data["node_exporter_port"],
+        machine_type=entry.data["machine_type"],
+        coolify_url=entry.data.get("coolify_url") or None,
+        coolify_api_key=entry.data.get("coolify_api_key") or None,
+    )
+    await coordinator.async_config_entry_first_refresh()
+    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    return True
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        hass.data[DOMAIN].pop(entry.entry_id)
+    return unloaded
