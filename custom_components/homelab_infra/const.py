@@ -1,0 +1,15 @@
+DOMAIN = "homelab_infra"
+
+MACHINE_TYPES = ["linux", "windows", "linux_docker", "windows_docker"]
+
+DEFAULT_METRICS_INTERVAL = 60
+DEFAULT_ONLINE_INTERVAL = 30
+REQUEST_TIMEOUT = 8
+
+CONF_MACHINE_TYPE = "machine_type"
+CONF_NODE_EXPORTER_PORT = "node_exporter_port"
+CONF_COOLIFY_URL = "coolify_url"
+CONF_COOLIFY_API_KEY = "coolify_api_key"
+
+DEFAULT_NODE_EXPORTER_PORT_LINUX = 9100
+DEFAULT_NODE_EXPORTER_PORT_WINDOWS = 9182
